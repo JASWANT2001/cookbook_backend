@@ -2,19 +2,14 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const cors = require('cors');
-const { MongoClient } = require('mongodb');
-
+const cors = require('cors'); // Import the cors package
 const app = express();
 const port = 5000;
-const url = 'mongodb://localhost:27017';
 
 // Enable CORS for all routes
-app.use(cors({
-  origin: 'http://localhost:3000',
-}));
+app.use(cors());
 
-// Set up storage engine for multer
+// Set up storage engine
 const storage = multer.diskStorage({
   destination: './uploads/',
   filename: (req, file, cb) => {
@@ -24,42 +19,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Middleware to parse JSON
-app.use(express.json());
-
-// Endpoint to handle recipe creation
-app.post('/create', async (req, res) => {
-  try {
-    const connection = await MongoClient.connect(url);
-    const db = connection.db('cookbook');
-    const { image, ...recipe } = req.body;
-    await db.collection('recipes').insertOne({
-      ...recipe,
-      image: image ? image : '',
-    });
-    await connection.close();
-    res.json({ message: 'Recipe Posted' });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'Something went wrong' });
-  }
-});
-
-// Endpoint to get all recipes
-app.get('/menu', async (req, res) => {
-  try {
-    const connection = await MongoClient.connect(url);
-    const db = connection.db('cookbook');
-    const store = await db.collection('recipes').find().toArray();
-    await connection.close();
-    res.json(store);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ message: 'Something went wrong' });
-  }
-});
-
-// Endpoint to handle file uploads
+// Create an endpoint to handle file uploads
 app.post('/upload', upload.single('file'), (req, res) => {
   try {
     res.status(200).json({
@@ -74,7 +34,7 @@ app.post('/upload', upload.single('file'), (req, res) => {
   }
 });
 
-// Endpoint to get the list of uploaded files
+// Create an endpoint to get the list of uploaded files
 app.get('/files', (req, res) => {
   const directoryPath = path.join(__dirname, 'uploads');
   fs.readdir(directoryPath, (err, files) => {
@@ -97,7 +57,6 @@ app.get('/files', (req, res) => {
 // Serve the uploads directory to view uploaded files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
